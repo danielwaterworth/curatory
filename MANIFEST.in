@@ -1,0 +1,2 @@
+recursive-include curatory/app/templates *
+recursive-include curatory/app/static *
