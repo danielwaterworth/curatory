@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block container %}
+  <div class=row>
+    <div class="col-md-12">
+      <h3 id=title></h3>
+    </div>
+  </div>
+  <div class=row>
+    <div class="col-md-2">
+      <h3>Classes</h3>
+      <ul id=classes></ul>
+    </div>
+    <div class="col-md-10">
+      <img style="height: 400px; width: 400px; margin: auto; display: block; border: 1px dashed #000;">
+    </div>
+  </div>
+{% endblock %}
+{% block scripts %}
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script>
+    var keys = {};
+    var current_question = null;
+    var current_question_id = null;
+    var current_job_id = null;
+
+    function num_to_key(n) {
+      n = n + 1;
+      if (n < 10) {
+        return n.toString();
+      } else if (n == 10) {
+        return '0';
+      } else {
+        n = n - 11;
+        if (n < 27) {
+          return String.fromCharCode(97 + n);
+        } else {
+          console.error('too large');
+        }
+      }
+    }
+
+    function set_question(job_id, question_id, question) {
+      current_question = question;
+      current_question_id = question_id;
+      current_job_id = job_id;
+
+      if (question.type == 'LabelImageQuestion') {
+        $("img").attr('src', '/image/' + question.image);
+        $("#title").html('label type: ' + question.label_type);
+        var classes = $("#classes");
+        classes.empty();
+        keys = {};
+        for (var i=0; i < question.labels.length; i++) {
+          var label = question.labels[i];
+          var key = num_to_key(i);
+          keys[key] = label;
+          classes.append('<li>' + key + ' ' + label + '</li>');
+        }
+      } else if (question.type == 'AuditLabelQuestion') {
+        console.log(question);
+        console.error('foo');
+      } else {
+        console.error('foo');
+      }
+    }
+
+    function get_question() {
+      $.post('/get_question.json', '', function(response) {
+        set_question(response.job_id, response.question_id, response.question);
+      }, 'json');
+    }
+
+    function submit_label_answer(label) {
+      var path = '/job/' + current_job_id + '/question/' + current_question_id + '/submit_answer';
+      var answer = {
+        'type': 'LabelAnswer',
+        'label': label
+      };
+      $.ajax({
+        type: "POST",
+        url: path,
+        contentType: "application/json",
+        data: JSON.stringify(answer),
+      });
+    }
+
+    $(document).keyup(function(event) {
+      var label = keys[event.key];
+      if (label) {
+        submit_label_answer(label);
+        get_question();
+      }
+    });
+
+    $(document).ready(function() {
+      get_question();
+    });
+  </script>
+{% endblock %}
