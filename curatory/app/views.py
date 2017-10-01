@@ -91,6 +91,12 @@ class Job:
                     obj['images'],
                     obj['labels'],
                 )
+        elif obj['type'] == 'PickLocationJob':
+            return \
+                PickLocationJob(
+                    obj['label_type'],
+                    obj['images'],
+                )
         else:
             raise TypeError()
 
@@ -109,6 +115,21 @@ class MutuallyExclusiveLabelJob(Job):
         for question, answer in zip(questions, answers):
             results[question.image] = answer.label
         return MutuallyExclusiveLabelResult(results)
+
+class PickLocationJob(Job):
+    def __init__(self, label_type, images):
+        self.label_type = label_type
+        self.images = images
+
+    def questions(self):
+        for image in self.images:
+            yield PickLocationQuestion(self.label_type, image)
+
+    def collate_answers(self, questions, answers):
+        results = {}
+        for question, answer in zip(questions, answers):
+            results[question.image] = answer.location
+        return PickLocationResult(results)
 
 class AuditLabelsJob(Job):
     def __init__(self, label_type, images, labels):
@@ -148,6 +169,18 @@ class LabelImageQuestion(Question):
             'labels': self.labels,
         }
 
+class PickLocationQuestion(Question):
+    def __init__(self, label_type, image):
+        self.label_type = label_type
+        self.image = image
+
+    def to_json_obj(self):
+        return {
+            'type': 'PickLocationQuestion',
+            'label_type': self.label_type,
+            'image': self.image,
+        }
+
 class AuditLabelQuestion(Question):
     def __init__(self, label_type, label, images):
         self.label_type = label_type
@@ -169,12 +202,18 @@ class Answer:
             return LabelAnswer(obj['label'])
         elif obj['type'] == 'AuditAnswer':
             return AuditAnswer(obj['incorrect_images'])
+        elif obj['type'] == 'PickLocationAnswer':
+            return PickLocationAnswer(obj['location'])
         else:
             raise TypeError()
 
 class LabelAnswer(Answer):
     def __init__(self, label):
         self.label = label
+
+class PickLocationAnswer(Answer):
+    def __init__(self, location):
+        self.location = location
 
 class AuditAnswer(Answer):
     def __init__(self, incorrect_images):
@@ -190,6 +229,16 @@ class MutuallyExclusiveLabelResult(Result):
     def to_json_obj(self):
         return {
             'type': 'MutuallyExclusiveLabelResult',
+            'labels': self.labels,
+        }
+
+class PickLocationResult(Result):
+    def __init__(self, labels):
+        self.labels = labels
+
+    def to_json_obj(self):
+        return {
+            'type': 'PickLocationResult',
             'labels': self.labels,
         }
 

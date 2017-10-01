@@ -7,7 +7,7 @@
   </div>
   <div class=row>
     <div class="col-md-2">
-      <h3>Classes</h3>
+      <h3 id="classes-title">Classes</h3>
       <ul id=classes></ul>
     </div>
     <div class="col-md-10">
@@ -45,6 +45,7 @@
       current_job_id = job_id;
 
       if (question.type == 'LabelImageQuestion') {
+        $("#classes-title").show();
         $("img").attr('src', '/image/' + question.image);
         $("#title").html('label type: ' + question.label_type);
         var classes = $("#classes");
@@ -56,6 +57,11 @@
           keys[key] = label;
           classes.append('<li>' + key + ' ' + label + '</li>');
         }
+      } else if (question.type == 'PickLocationQuestion') {
+        $("img").attr('src', '/image/' + question.image);
+        $("#title").html('label type: ' + question.label_type);
+        $("#classes-title").hide();
+        $("#classes").empty();
       } else if (question.type == 'AuditLabelQuestion') {
         console.log(question);
         console.error('foo');
@@ -70,18 +76,30 @@
       }, 'json');
     }
 
-    function submit_label_answer(label) {
+    function submit_answer(answer) {
       var path = '/job/' + current_job_id + '/question/' + current_question_id + '/submit_answer';
-      var answer = {
-        'type': 'LabelAnswer',
-        'label': label
-      };
       $.ajax({
         type: "POST",
         url: path,
         contentType: "application/json",
         data: JSON.stringify(answer),
       });
+    }
+
+    function submit_label_answer(label) {
+      var answer = {
+        'type': 'LabelAnswer',
+        'label': label
+      };
+      submit_answer(answer);
+    }
+
+    function submit_location_answer(location) {
+      var answer = {
+        'type': 'PickLocationAnswer',
+        'location': location
+      };
+      submit_answer(answer);
     }
 
     $(document).keyup(function(event) {
@@ -91,6 +109,13 @@
         get_question();
       }
     });
+
+    $("img").click(function(event) {
+      var x = event.pageX - $(this).offset().left;
+      var y = event.pageY - $(this).offset().top;
+      submit_location_answer([x/400, y/400]);
+      get_question();
+    })
 
     $(document).ready(function() {
       get_question();

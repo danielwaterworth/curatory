@@ -29,3 +29,15 @@ class MutuallyExclusiveLabelJob:
             'label_type': self.label_type,
             'labels': self.labels,
         }
+
+class PickLocationJob:
+    def __init__(self, images, label_type):
+        self.images = images
+        self.label_type = label_type
+
+    def to_json(self):
+        return {
+            'type': 'PickLocationJob',
+            'images': self.images,
+            'label_type': self.label_type,
+        }
