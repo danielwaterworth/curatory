@@ -19,6 +19,7 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script>
     var keys = {};
+    var question_history = [];
     var current_question = null;
     var current_question_id = null;
     var current_job_id = null;
@@ -39,10 +40,17 @@
       }
     }
 
+    function undo() {
+      question_history.pop();
+      var x = question_history.pop();
+      set_question(x[0], x[1], x[2]);
+    }
+
     function set_question(job_id, question_id, question) {
+      current_job_id = job_id;
       current_question = question;
       current_question_id = question_id;
-      current_job_id = job_id;
+      question_history.push([job_id, question_id, question]);
 
       if (question.type == 'LabelImageQuestion') {
         $("#classes-title").show();
@@ -103,10 +111,16 @@
     }
 
     $(document).keyup(function(event) {
-      var label = keys[event.key];
-      if (label) {
-        submit_label_answer(label);
-        get_question();
+      if (event.ctrlKey) {
+        if (event.key == 'z') {
+          undo();
+        }
+      } else {
+        var label = keys[event.key];
+        if (label) {
+          submit_label_answer(label);
+          get_question();
+        }
       }
     });
 
