@@ -12,6 +12,6 @@ setup(
     packages=['curatory', 'curatory.app'],
     long_description="",
     classifiers=[],
-    install_requires=['requests', 'flask', 'Flask-Bootstrap'],
+    install_requires=['requests', 'flask', 'Flask-Bootstrap', 'sortedcollections'],
     include_package_data=True,
 )

@@ -1,5 +1,4 @@
 from curatory.app import app
-import flask
 from flask import Response
 from flask import abort
 from flask import jsonify
@@ -8,10 +7,13 @@ from flask import render_template
 from flask import request
 from flask import url_for
 import collections
+import flask
 import itertools
-import sys
 import os
 import re
+import sortedcollections
+import sys
+import time
 
 image_dir = os.path.expanduser(sys.argv[1])
 
@@ -28,19 +30,24 @@ class PendingJob:
         self.job_id = job_id
         self.job = job
         self.original_questions = list(job.questions())
-        self.questions = list(enumerate(self.original_questions))
+        self.questions_by_id = dict(enumerate(self.original_questions))
+        self.unanswered_question_times_by_id = sortedcollections.ValueSortedDict()
+        for question_id in self.questions_by_id.keys():
+            self.unanswered_question_times_by_id[question_id] = 0
         self.answers = {}
 
     def has_unanswered_questions(self):
-        return len(self.questions) != 0
+        return len(self.unanswered_question_times_by_id) != 0
 
     def get_unanswered_question(self):
-        question_id, question = self.questions.pop()
-        return self.job_id, question_id, question
+        question_id = self.unanswered_question_times_by_id.keys()[0]
+        self.unanswered_question_times_by_id[question_id] = time.time()
+        return self.job_id, question_id, self.questions_by_id[question_id]
 
     def submit_answer(self, question_id, answer):
         self.answers[question_id] = answer
-        if len(self.answers) == len(self.original_questions):
+        del self.unanswered_question_times_by_id[question_id]
+        if not self.has_unanswered_questions():
             answers = map(lambda x: x[1], sorted(self.answers.items()))
             return self.job.collate_answers(self.original_questions, answers)
 
