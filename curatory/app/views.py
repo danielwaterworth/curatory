@@ -22,7 +22,7 @@ def get_image(image_id):
     with open(os.path.join(image_dir, image_id + '.png'), 'rb') as fd:
         return fd.read()
 
-jobs = JobCollection()
+jobs = SQLJobCollection('curatory.db')
 
 @app.route('/', methods=['GET'])
 def index():

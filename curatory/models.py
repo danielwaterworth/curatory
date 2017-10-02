@@ -1,10 +1,24 @@
+import json
 # These are objects are designed to be immutable
 
 def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
-class Job:
+class JSONable:
+    def to_json_obj(self):
+        output = self.__dict__.copy()
+        output['type'] = type(self).__name__
+        return output
+
+    def to_json_string(self):
+        return json.dumps(self.to_json_obj())
+
+    @classmethod
+    def from_json_string(cls, obj):
+        return cls.from_json_obj(json.loads(obj))
+
+class Job(JSONable):
     @classmethod
     def from_json_obj(cls, obj):
         if obj['type'] == 'MutuallyExclusiveLabelJob':
@@ -46,14 +60,6 @@ class MutuallyExclusiveLabelJob(Job):
             results[question.image] = answer.label
         return MutuallyExclusiveLabelResult(results)
 
-    def to_json(self):
-        return {
-            'type': 'MutuallyExclusiveLabelJob',
-            'label_type': self.label_type,
-            'images': self.images,
-            'labels': self.labels,
-        }
-
 class PickLocationJob(Job):
     def __init__(self, label_type, images):
         self.label_type = label_type
@@ -68,13 +74,6 @@ class PickLocationJob(Job):
         for question, answer in zip(questions, answers):
             results[question.image] = answer.location
         return PickLocationResult(results)
-
-    def to_json(self):
-        return {
-            'type': 'PickLocationJob',
-            'label_type': self.label_type,
-            'images': self.images,
-        }
 
 class AuditLabelsJob(Job):
     def __init__(self, label_type, images, labels):
@@ -97,8 +96,31 @@ class AuditLabelsJob(Job):
             incorrect_images |= set(answer.incorrect_images)
         return AuditLabelsResult(list(incorrect_images))
 
-class Question:
-    pass
+class Question(JSONable):
+    @classmethod
+    def from_json_obj(cls, obj):
+        if obj['type'] == 'LabelImageQuestion':
+            return \
+                LabelImageQuestion(
+                    obj['label_type'],
+                    obj['image'],
+                    obj['labels'],
+                )
+        elif obj['type'] == 'PickLocationQuestion':
+            return \
+                PickLocationQuestion(
+                    obj['label_type'],
+                    obj['image'],
+                )
+        elif obj['type'] == 'AuditLabelQuestion':
+            return \
+                AuditLabelQuestion(
+                    obj['label_type'],
+                    obj['label'],
+                    obj['images'],
+                )
+        else:
+            raise TypeError()
 
 class LabelImageQuestion(Question):
     def __init__(self, label_type, image, labels):
@@ -106,25 +128,10 @@ class LabelImageQuestion(Question):
         self.image = image
         self.labels = labels
 
-    def to_json_obj(self):
-        return {
-            'type': 'LabelImageQuestion',
-            'label_type': self.label_type,
-            'image': self.image,
-            'labels': self.labels,
-        }
-
 class PickLocationQuestion(Question):
     def __init__(self, label_type, image):
         self.label_type = label_type
         self.image = image
-
-    def to_json_obj(self):
-        return {
-            'type': 'PickLocationQuestion',
-            'label_type': self.label_type,
-            'image': self.image,
-        }
 
 class AuditLabelQuestion(Question):
     def __init__(self, label_type, label, images):
@@ -132,15 +139,7 @@ class AuditLabelQuestion(Question):
         self.label = label
         self.images = images
 
-    def to_json_obj(self):
-        return {
-            'type': 'AuditLabelQuestion',
-            'label_type': self.label_type,
-            'label': self.label,
-            'images': self.images,
-        }
-
-class Answer:
+class Answer(JSONable):
     @classmethod
     def from_json_obj(cls, obj):
         if obj['type'] == 'LabelAnswer':
@@ -164,35 +163,26 @@ class AuditAnswer(Answer):
     def __init__(self, incorrect_images):
         self.incorrect_images = incorrect_images
 
-class Result:
-    pass
+class Result(JSONable):
+    @classmethod
+    def from_json_obj(cls, obj):
+        if obj['type'] == 'MutuallyExclusiveLabelResult':
+            return MutuallyExclusiveLabelResult(obj['labels'])
+        elif obj['type'] == 'PickLocationResult':
+            return PickLocationResult(obj['labels'])
+        elif obj['type'] == 'AuditLabelsResult':
+            return AuditLabelsResult(obj['incorrect_images'])
+        else:
+            raise TypeError()
 
 class MutuallyExclusiveLabelResult(Result):
     def __init__(self, labels):
         self.labels = labels
 
-    def to_json_obj(self):
-        return {
-            'type': 'MutuallyExclusiveLabelResult',
-            'labels': self.labels,
-        }
-
 class PickLocationResult(Result):
     def __init__(self, labels):
         self.labels = labels
 
-    def to_json_obj(self):
-        return {
-            'type': 'PickLocationResult',
-            'labels': self.labels,
-        }
-
 class AuditLabelsResult(Result):
     def __init__(self, incorrect_images):
         self.incorrect_images = incorrect_images
-
-    def to_json_obj(self):
-        return {
-            'type': 'AuditLabelsResult',
-            'incorrect_images': self.incorrect_images,
-        }

@@ -14,5 +14,5 @@ class Client:
             "%s/submit_job" % self.url
         requests.post(
             path,
-            json=job.to_json(),
+            json=job.to_json_obj(),
         ).raise_for_status()
